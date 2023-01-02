@@ -1,5 +1,7 @@
 #include "qtthreadedsql.h"
 
+#include <QMapIterator>
+
 using namespace QtThreadedSql;
 
 DBConnector::DBConnector(QObject *parent)
@@ -34,6 +36,11 @@ DBConnection::~DBConnection()
     m_thread.wait();
 }
 
+DBQuery *DBConnection::createQuery()
+{
+    return new DBQuery([ this ](DBQuery *query) { QTimer::singleShot(0, &m_worker, [ this, query ] { exec(query); }); }, this);
+}
+
 void DBConnection::start()
 {
     const auto thread = QThread::currentThread();
@@ -54,4 +61,23 @@ void DBConnection::start()
         return;
     }
     emit ready();
+}
+
+void DBConnection::exec(DBQuery *query)
+{
+    QSqlQuery sql { m_db };
+    sql.prepare(query->m_query);
+
+    QMapIterator<QString, QVariant> i { query->m_bounds };
+    while (i.hasNext()) {
+        i.next();
+        sql.bindValue(i.key(), i.value());
+    }
+
+    const bool success = sql.exec();
+    if (!success) {
+        emit query->error();
+        return;
+    }
+    emit query->ready();
 }
