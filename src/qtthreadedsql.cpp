@@ -74,10 +74,6 @@ void DBConnection::exec(DBQuery *query)
         sql.bindValue(i.key(), i.value());
     }
 
-    const bool success = sql.exec();
-    if (!success) {
-        emit query->error();
-        return;
-    }
-    emit query->ready();
+    query->m_isError = !sql.exec();
+    emit query->finished();
 }

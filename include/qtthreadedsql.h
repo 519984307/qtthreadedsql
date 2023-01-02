@@ -11,8 +11,10 @@
 
 namespace QtThreadedSql {
 
-class DBQuery;
 class DBConnection;
+
+class DBRequest;
+class DBQuery;
 
 struct ConnectInfo
 {
@@ -80,13 +82,31 @@ private:
     QSqlDatabase m_db;
 };
 
-class DBQuery : public QObject
+class DBRequest : public QObject
+{
+    friend class DBConnection;
+    Q_OBJECT
+    Q_DISABLE_COPY(DBRequest)
+protected:
+    bool m_isError = false;
+    explicit DBRequest(QObject *parent = nullptr)
+        : QObject(parent)
+    {
+
+    }
+public:
+    bool isError() const { return m_isError; }
+signals:
+    void finished();
+};
+
+class DBQuery : public DBRequest
 {
     friend class DBConnection;
     Q_OBJECT
     Q_DISABLE_COPY(DBQuery)
     explicit DBQuery(std::function<void(DBQuery *)> callback, QObject *parent = nullptr)
-        : QObject(parent)
+        : DBRequest(parent)
         , m_callback(callback)
     {
 
@@ -96,9 +116,6 @@ public:
     void prepare(const QString &query) { m_query = query; }
     void bindValue(const QString &placeholder, const QVariant &val) { m_bounds[placeholder] = val; }
     void exec() { m_callback(this); }
-signals:
-    void ready();
-    void error();
 private:
     std::function<void(DBQuery *)> m_callback;
     QString m_query;

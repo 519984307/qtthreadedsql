@@ -20,19 +20,25 @@ int main(int argc, char *argv[])
         connector->setType(QStringLiteral("QSQLITE"));
         connector->setDatabaseName(QStringLiteral("qtthreadedsql.db"));
         auto connection = connector->createConnection(qApp);
-
-        qApp->connect(connection, &DBConnection::ready, qApp, [ ] { qDebug() << "ready"; });
-        qApp->connect(connection, &DBConnection::error, qApp, [ ] { qDebug() << "error"; });
-
         qApp->connect(connection, &DBConnection::ready, qApp, [ connection ] {
             auto create = connection->createQuery();
             create->prepare(QStringLiteral("CREATE TABLE IF NOT EXISTS numbers (number INTEGER)"));
-            create->exec();
+            qApp->connect(create, &DBQuery::finished, qApp, [ connection, create ] {
+                create->deleteLater();
+                if (create->isError())
+                    return;
 
-            auto insert = connection->createQuery();
-            insert->prepare(QStringLiteral("INSERT INTO numbers VALUES (:number)"));
-            insert->bindValue(QStringLiteral(":number"), std::rand());
-            insert->exec();
+                auto insert = connection->createQuery();
+                insert->prepare(QStringLiteral("INSERT INTO numbers VALUES (:number)"));
+                insert->bindValue(QStringLiteral(":number"), std::rand());
+                qApp->connect(insert, &DBQuery::finished, qApp, [ insert ] {
+                    insert->deleteLater();
+                    if (insert->isError())
+                        return;
+                });
+                insert->exec();
+            });
+            create->exec();
         });
     });
 
