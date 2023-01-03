@@ -25,9 +25,10 @@ DBConnection::DBConnection(const ConnectInfo &info, QObject *parent)
     , m_info(info)
 {
     m_worker.moveToThread(&m_thread);
-
     connect(&m_thread, &QThread::started, &m_worker, [ this ] { start(); });
-    m_thread.start();
+    QTimer::singleShot(0, this, [ this ] {
+        m_thread.start();
+    });
 }
 
 DBConnection::~DBConnection()
@@ -38,7 +39,12 @@ DBConnection::~DBConnection()
 
 DBQuery *DBConnection::createQuery()
 {
-    return new DBQuery([ this ](DBQuery *query) { QTimer::singleShot(0, &m_worker, [ this, query ] { exec(query); }); }, this);
+    const auto callback = [ this ](DBQuery *query) {
+        QTimer::singleShot(0, this, [ this, query ] {
+            QTimer::singleShot(0, &m_worker, [ this, query ] { exec(query); });
+        });
+    };
+    return new DBQuery(callback, this);
 }
 
 void DBConnection::start()
