@@ -41,11 +41,12 @@ int main(int argc, char *argv[])
                     auto select = connection->createQuery();
                     select->prepare(QStringLiteral("SELECT * FROM numbers"));
                     select->exec();
-                    qApp->connect(select, &DBQuery::finished, qApp, [ select ] {
+                    qApp->connect(select, &DBQuery::finished, qApp, [ connection, select ] {
+                        connection->deleteLater();
+
                         select->deleteLater();
                         if (select->isError())
                             return;
-
                         qDebug() << select->data();
                     });
                 });

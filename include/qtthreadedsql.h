@@ -75,11 +75,13 @@ signals:
 private:
     void start();
     void exec(DBQuery *);
+    void finish();
 private:
     ConnectInfo m_info;
     QThread m_thread;
     QObject m_worker;
     QSqlDatabase m_db;
+    QString m_connectionName;
 };
 
 class DBRequest : public QObject

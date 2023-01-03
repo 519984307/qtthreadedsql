@@ -33,7 +33,7 @@ DBConnection::DBConnection(const ConnectInfo &info, QObject *parent)
 
 DBConnection::~DBConnection()
 {
-    m_thread.exit();
+    QTimer::singleShot(0, &m_worker, [ this ] { finish(); });
     m_thread.wait();
 }
 
@@ -49,10 +49,9 @@ DBQuery *DBConnection::createQuery()
 
 void DBConnection::start()
 {
-    const auto thread = QThread::currentThread();
-    const auto name = QStringLiteral("QtThreadedSql-%1").arg(reinterpret_cast<qulonglong>(thread), 0, 16);
+    m_connectionName = QStringLiteral("QtThreadedSql-%1").arg(reinterpret_cast<qulonglong>(QThread::currentThread()), 0, 16);
 
-    m_db = QSqlDatabase::addDatabase(m_info.type, name);
+    m_db = QSqlDatabase::addDatabase(m_info.type, m_connectionName);
 
     m_db.setDatabaseName(m_info.databaseName);
     m_db.setUserName(m_info.userName);
@@ -108,4 +107,15 @@ void DBConnection::exec(DBQuery *query)
     query->m_isError = sql.lastError().isValid();
 
     emit query->finished();
+}
+
+void DBConnection::finish()
+{
+    if (m_db.isOpen())
+        m_db.close();
+
+    m_db = QSqlDatabase();
+    QSqlDatabase::removeDatabase(m_connectionName);
+
+    m_thread.quit();
 }
