@@ -116,10 +116,12 @@ public:
     void prepare(const QString &query) { m_query = query; }
     void bindValue(const QString &placeholder, const QVariant &val) { m_bounds[placeholder] = val; }
     void exec() { m_callback(this); }
+    const QVector<QVector<QVariant> > &data() const { return m_data; }
 private:
     std::function<void(DBQuery *)> m_callback;
     QString m_query;
     QVariantMap m_bounds;
+    QVector<QVector<QVariant> > m_data;
 };
 
 }

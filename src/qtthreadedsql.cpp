@@ -80,6 +80,32 @@ void DBConnection::exec(DBQuery *query)
         sql.bindValue(i.key(), i.value());
     }
 
-    query->m_isError = !sql.exec();
+    sql.setForwardOnly(true);
+
+    const bool isError = !sql.exec();
+    query->m_isError = isError;
+    if (isError || !sql.isSelect()) {
+        emit query->finished();
+        return;
+    }
+
+    const int rows = sql.size();
+    const int cols = sql.record().count();
+
+    QVector<QVector<QVariant> > data;
+    if (rows > 0)
+        data.reserve(rows);
+
+    while (sql.next()) {
+        QVector<QVariant> row;
+        row.reserve(cols);
+        for (int i = 0; i < cols; ++i)
+            row << sql.value(i);
+
+        data << row;
+    }
+    query->m_data = data;
+    query->m_isError = sql.lastError().isValid();
+
     emit query->finished();
 }

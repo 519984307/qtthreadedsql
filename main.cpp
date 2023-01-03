@@ -33,10 +33,21 @@ int main(int argc, char *argv[])
                 insert->prepare(QStringLiteral("INSERT INTO numbers VALUES (:number)"));
                 insert->bindValue(QStringLiteral(":number"), std::rand());
                 insert->exec();
-                qApp->connect(insert, &DBQuery::finished, qApp, [ insert ] {
+                qApp->connect(insert, &DBQuery::finished, qApp, [ connection, insert ] {
                     insert->deleteLater();
                     if (insert->isError())
                         return;
+
+                    auto select = connection->createQuery();
+                    select->prepare(QStringLiteral("SELECT * FROM numbers"));
+                    select->exec();
+                    qApp->connect(select, &DBQuery::finished, qApp, [ select ] {
+                        select->deleteLater();
+                        if (select->isError())
+                            return;
+
+                        qDebug() << select->data();
+                    });
                 });
             });
         });
