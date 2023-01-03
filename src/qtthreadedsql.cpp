@@ -70,6 +70,9 @@ void DBConnection::start()
 
 void DBConnection::exec(DBQuery *query)
 {
+    if (!m_db.isOpen())
+        return;
+
     QSqlQuery sql { m_db };
     sql.prepare(query->m_query);
 
