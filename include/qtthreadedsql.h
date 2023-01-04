@@ -36,6 +36,7 @@ public:
     explicit DBConnection(QObject *parent = nullptr);
     virtual ~DBConnection();
 
+    bool autoDeleteQueries() const { return m_autoDeleteQueries; }
     QString type() const { return m_info.type; }
     QString databaseName() const { return m_info.databaseName; }
     QString userName() const { return m_info.userName; }
@@ -45,6 +46,7 @@ public:
     QString connectOptions() const { return m_info.connectOptions; }
     QSql::NumericalPrecisionPolicy numericalPrecisionPolicy() const { return m_info.precisionPolicy; }
 
+    void setAutoDeleteQueries(bool b) { m_autoDeleteQueries = b; }
     void setType(const QString &type) { m_info.type = type; }
     void setDatabaseName(const QString &databaseName) { m_info.databaseName = databaseName; }
     void setUserName(const QString &userName) { m_info.userName = userName; }
@@ -66,6 +68,7 @@ private:
     void exec(DBQuery *);
     void finish();
 private:
+    bool m_autoDeleteQueries = true;
     ConnectInfo m_info;
     ConnectInfo m_currentInfo;
     QThread m_thread;
@@ -104,7 +107,6 @@ class DBQuery : public DBRequest
 
     }
 public:
-    virtual ~DBQuery() { }
     void prepare(const QString &query) { m_query = query; }
     void bindValue(const QString &placeholder, const QVariant &val) { m_bounds[placeholder] = val; }
     void exec() { m_callback(this); }

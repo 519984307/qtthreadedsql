@@ -39,7 +39,11 @@ DBQuery *DBConnection::createQuery()
             QTimer::singleShot(0, &m_worker, [ this, query ] { exec(query); });
         });
     };
-    return new DBQuery(callback, this);
+
+    auto query = new DBQuery(callback, this);
+    if (m_autoDeleteQueries)
+        connect(query, &DBQuery::finished, query, &QObject::deleteLater);
+    return query;
 }
 
 void DBConnection::start()

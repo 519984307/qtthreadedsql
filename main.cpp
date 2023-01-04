@@ -27,26 +27,23 @@ int main(int argc, char *argv[])
             create->prepare(QStringLiteral("CREATE TABLE IF NOT EXISTS numbers (number INTEGER)"));
             create->exec();
             qApp->connect(create, &DBQuery::finished, qApp, [ connection, create ] {
-                create->deleteLater();
                 if (create->isError())
-                    return connection->deleteLater();;
+                    return connection->deleteLater();
 
                 auto insert = connection->createQuery();
                 insert->prepare(QStringLiteral("INSERT INTO numbers VALUES (:number)"));
                 insert->bindValue(QStringLiteral(":number"), std::rand());
                 insert->exec();
                 qApp->connect(insert, &DBQuery::finished, qApp, [ connection, insert ] {
-                    insert->deleteLater();
                     if (insert->isError())
-                        return connection->deleteLater();;
+                        return connection->deleteLater();
 
                     auto select = connection->createQuery();
                     select->prepare(QStringLiteral("SELECT * FROM numbers"));
                     select->exec();
                     qApp->connect(select, &DBQuery::finished, qApp, [ connection, select ] {
-                        select->deleteLater();
                         if (select->isError())
-                            return connection->deleteLater();;
+                            return connection->deleteLater();
                         qDebug() << select->data();
                         connection->deleteLater();
                     });
