@@ -4,35 +4,30 @@
 
 using namespace QtThreadedSql;
 
-DBConnector::DBConnector(QObject *parent)
+DBConnection::DBConnection(QObject *parent)
     : QObject(parent)
-{
-
-}
-
-DBConnector::~DBConnector()
-{
-
-}
-
-DBConnection *DBConnector::createConnection(QObject *parent)
-{
-    return new DBConnection(m_info, parent);
-}
-
-DBConnection::DBConnection(const ConnectInfo &info, QObject *parent)
-    : QObject(parent)
-    , m_info(info)
 {
     m_worker.moveToThread(&m_thread);
     connect(&m_thread, &QThread::started, &m_worker, [ this ] { start(); });
+}
+
+DBConnection::~DBConnection()
+{
+    disconnectFromDatabase();
+}
+
+void DBConnection::connectToDatabase()
+{
+    m_currentInfo = m_info;
     QTimer::singleShot(0, this, [ this ] {
         m_thread.start();
     });
 }
 
-DBConnection::~DBConnection()
+void DBConnection::disconnectFromDatabase()
 {
+    if (!m_thread.isRunning())
+        return;
     QTimer::singleShot(0, &m_worker, [ this ] { finish(); });
     m_thread.wait();
 }
@@ -51,15 +46,15 @@ void DBConnection::start()
 {
     m_connectionName = QStringLiteral("QtThreadedSql-%1").arg(reinterpret_cast<qulonglong>(QThread::currentThread()), 0, 16);
 
-    m_db = QSqlDatabase::addDatabase(m_info.type, m_connectionName);
+    m_db = QSqlDatabase::addDatabase(m_currentInfo.type, m_connectionName);
 
-    m_db.setDatabaseName(m_info.databaseName);
-    m_db.setUserName(m_info.userName);
-    m_db.setPassword(m_info.password);
-    m_db.setHostName(m_info.hostName);
-    m_db.setPort(m_info.port);
-    m_db.setConnectOptions(m_info.connectOptions);
-    m_db.setNumericalPrecisionPolicy(m_info.precisionPolicy);
+    m_db.setDatabaseName(m_currentInfo.databaseName);
+    m_db.setUserName(m_currentInfo.userName);
+    m_db.setPassword(m_currentInfo.password);
+    m_db.setHostName(m_currentInfo.hostName);
+    m_db.setPort(m_currentInfo.port);
+    m_db.setConnectOptions(m_currentInfo.connectOptions);
+    m_db.setNumericalPrecisionPolicy(m_currentInfo.precisionPolicy);
 
     if (!m_db.open()) {
         emit error();

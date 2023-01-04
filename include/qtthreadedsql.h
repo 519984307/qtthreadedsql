@@ -11,8 +11,6 @@
 
 namespace QtThreadedSql {
 
-class DBConnection;
-
 class DBRequest;
 class DBQuery;
 
@@ -29,14 +27,14 @@ struct ConnectInfo
     QSql::NumericalPrecisionPolicy precisionPolicy = QSql::LowPrecisionDouble;
 };
 
-class DBConnector : public QObject
+class DBConnection : public QObject
 {
+    friend class DBConnector;
     Q_OBJECT
-    Q_DISABLE_COPY(DBConnector)
+    Q_DISABLE_COPY(DBConnection)
 public:
-    explicit DBConnector(QObject *parent = nullptr);
-    virtual ~DBConnector();
-    DBConnection *createConnection(QObject *parent = nullptr);
+    explicit DBConnection(QObject *parent = nullptr);
+    virtual ~DBConnection();
 
     QString type() const { return m_info.type; }
     QString databaseName() const { return m_info.databaseName; }
@@ -56,18 +54,9 @@ public:
     void setConnectOptions(const QString &connectOptions) { m_info.connectOptions = connectOptions; }
     void setNumericalPrecisionPolicy(QSql::NumericalPrecisionPolicy precisionPolicy) { m_info.precisionPolicy = precisionPolicy; }
 
-private:
-    ConnectInfo m_info;
-};
+    void connectToDatabase();
+    void disconnectFromDatabase();
 
-class DBConnection : public QObject
-{
-    friend class DBConnector;
-    Q_OBJECT
-    Q_DISABLE_COPY(DBConnection)
-    explicit DBConnection(const ConnectInfo &, QObject *parent = nullptr);
-public:
-    virtual ~DBConnection();
     DBQuery *createQuery();
 signals:
     void ready();
@@ -78,6 +67,7 @@ private:
     void finish();
 private:
     ConnectInfo m_info;
+    ConnectInfo m_currentInfo;
     QThread m_thread;
     QObject m_worker;
     QSqlDatabase m_db;
